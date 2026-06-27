@@ -7,10 +7,35 @@ const DUREE_RAPIDE = 200; // ms, fermeture via la ruche
 
 // ---- Arborescence (données, modifiables ici) ----
 const arbre = [
-  { nom: "Rafraîchir", enfants: [] },
-  { nom: "Signaler",   enfants: ["Fonctionnel", "Disfonctionnel", "Danger"] },
-  { nom: "Découvrir",  enfants: ["Parcours", "Promotions"] },
+  { nom: "Rafraîchir", couleur: "#b8943c", enfants: [] },
+  { nom: "Signaler",   couleur: "#2c3e50", enfants: [
+    { nom: "Fonctionnel",    couleur: "#1f7a47", enfants: [] },
+    { nom: "Disfonctionnel", couleur: "#a01b1b", enfants: [] },
+    { nom: "Danger",         couleur: "#f39200", enfants: [] },
+    { nom: "Suggestion",     couleur: "#6b4fb8", enfants: [] },
+  ] },
+  { nom: "Découvrir",  couleur: "#2c3e50", enfants: [
+    { nom: "Parcours",   couleur: "#b0277b", enfants: [] },
+    { nom: "Promotions", couleur: "#0e8aa8", enfants: [] },
+  ] },
 ];
+
+// ---- Liste à plat des feuilles, dans l'ordre de l'arbre ----
+// Une feuille = un nœud sans enfants. L'ordre détermine la correspondance avec les hexagones de la ruche.
+const feuilles = [];
+
+function collecterFeuilles(noeuds) {
+  noeuds.forEach((noeud) => {
+    if (noeud.enfants && noeud.enfants.length > 0) {
+      collecterFeuilles(noeud.enfants);   // descendre dans les enfants
+    } else {
+      noeud.active = true;                 // état initial : activée
+      feuilles.push(noeud);                // l'objet feuille lui-même
+    }
+  });
+}
+
+collecterFeuilles(arbre);
 
 // ---- Brique de base : sommets d'un hexagone pointe-en-haut ----
 function hexPoints(cx, cy, r) {
@@ -25,31 +50,56 @@ function hexPoints(cx, cy, r) {
 }
 
 // ---- Crée un <polygon> hexagonal ----
-function makeHexPolygon(cx, cy, r) {
+function makeHexPolygon(cx, cy, r, couleur) {
   const poly = document.createElementNS(SVG_NS, "polygon");
   poly.setAttribute("class", "hex");
   poly.setAttribute("points", hexPoints(cx, cy, r));
+  if (couleur) {
+    poly.style.fill = couleur;
+  }
   return poly;
 }
 
 // ---- Crée une "ligne" hexagone + libellé ----
-function makeItem(label) {
+function makeItem(noeud) {
   const item = document.createElement("div");
   item.setAttribute("class", "menu-item");
 
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("class", "menu-hex");
   svg.setAttribute("viewBox", "0 0 100 100");
-  svg.appendChild(makeHexPolygon(50, 50, 45));
+  svg.appendChild(makeHexPolygon(50, 50, 45, noeud.couleur));
 
   const span = document.createElement("span");
   span.setAttribute("class", "menu-label");
-  span.textContent = label;
+  span.textContent = noeud.nom;
 
   item.appendChild(svg);
   item.appendChild(span);
+
+  // Une feuille (nœud sans enfants) devient un bouton toggleable
+  const estFeuille = !noeud.enfants || noeud.enfants.length === 0;
+  if (estFeuille) {
+    appliquerEtatFeuille(svg, noeud);   // applique l'opacité initiale
+    svg.addEventListener("click", (e) => {
+      e.stopPropagation();              // ne pas déclencher l'ouverture du parent
+      noeud.active = !noeud.active;     // bascule l'état
+      appliquerEtatFeuille(svg, noeud); // met à jour l'opacité de l'hexagone
+      majRuche();                       // répercute sur la ruche
+    });
+  }
+
   return item;
 }
+
+// ---- Applique l'apparence d'une feuille (opacité) selon son état actif ----
+function appliquerEtatFeuille(svg, noeud) {
+  svg.style.opacity = noeud.active ? "1" : "0.3";
+  svg.style.cursor = "pointer";
+}
+
+// Tableau ordonné des polygones de la ruche : [centre, péri0, péri1, ... péri5]
+const hexRuche = [];
 
 // ---- Génération de la ruche (1 centre + 6 autour) ----
 function buildRuche() {
@@ -57,14 +107,32 @@ function buildRuche() {
   const cx = 100, cy = 100, r = 30;
   const d = Math.sqrt(3) * r;
 
-  ruche.appendChild(makeHexPolygon(cx, cy, r));
+  const centre = makeHexPolygon(cx, cy, r);
+  ruche.appendChild(centre);
+  hexRuche.push(centre);
+
   for (let i = 0; i < 6; i++) {
     const theta = (Math.PI / 180) * (i * 60);
     const x = cx + d * Math.cos(theta);
     const y = cy - d * Math.sin(theta);
-    ruche.appendChild(makeHexPolygon(x, y, r));
+    const hex = makeHexPolygon(x, y, r);
+    ruche.appendChild(hex);
+    hexRuche.push(hex);
   }
   return ruche;
+}
+
+// ---- Met à jour la couleur des hexagones de la ruche selon l'état des feuilles ----
+function majRuche() {
+  // On lit la couleur par défaut définie dans le CSS (:root)
+  const couleurDefaut = getComputedStyle(document.documentElement)
+    .getPropertyValue("--ruche-defaut").trim();
+
+  feuilles.forEach((feuille, i) => {
+    const hex = hexRuche[i];
+    if (!hex) return;   // sécurité si moins d'hexagones que de feuilles
+    hex.style.fill = feuille.active ? feuille.couleur : couleurDefaut;
+  });
 }
 
 // ---- Suivi de la catégorie actuellement ouverte (une seule à la fois) ----
@@ -81,35 +149,33 @@ function buildMenu() {
     const node = document.createElement("div");
     node.setAttribute("class", "menu-node");
 
-    const parentItem = makeItem(categorie.nom);
+    const parentItem = makeItem(categorie);
 
     const children = document.createElement("div");
     children.setAttribute("class", "children");
 
     const childrenInner = document.createElement("div");
     childrenInner.setAttribute("class", "children-inner");
-    categorie.enfants.forEach((nomEnfant) => {
-    childrenInner.appendChild(makeItem(nomEnfant));
+    categorie.enfants.forEach((enfant) => {
+      childrenInner.appendChild(makeItem(enfant));
     });
     children.appendChild(childrenInner);
 
     parentItem.addEventListener("click", () => {
       const dejaOuvert = node.classList.contains("open");
 
-      // 1. Refermer la catégorie actuellement ouverte (avec animation)
-      if (nodeOuvert) {
-        fermerEnfants(nodeOuvert);
-        nodeOuvert = null;
+      // Toggle de CETTE catégorie uniquement (les autres restent dans leur état)
+      if (categorie.enfants.length > 0) {
+        if (dejaOuvert) {
+          fermerEnfants(node);
+        } else {
+          ouvrirEnfants(node, children);
+        }
       }
 
-      // 2. Ouvrir la catégorie cliquée si elle a des enfants et n'était pas déjà ouverte
-      if (categorie.enfants.length > 0 && !dejaOuvert) {
-        ouvrirEnfants(node, children);
-        nodeOuvert = node;
-      }
-
-      // 3. Aide contextuelle
-      menu.classList.toggle("categorie-ouverte", nodeOuvert !== null);
+      // Aide contextuelle : actif s'il reste au moins une catégorie ouverte
+      const auMoinsUneOuverte = menu.querySelector(".menu-node.open") !== null;
+      menu.classList.toggle("categorie-ouverte", auMoinsUneOuverte);
     });
 
     node.appendChild(parentItem);
@@ -122,10 +188,12 @@ function buildMenu() {
 }
 
 // ---- Construction au chargement ----
+// ---- Construction au chargement ----
 const ruche = buildRuche();
 const menu = buildMenu();
 const aide = document.getElementById("aide");
 
+majRuche();   // applique l'état initial des feuilles aux hexagones de la ruche
 // ============================================================
 //   Animations coordonnées par minuteur (setTimeout)
 // ============================================================

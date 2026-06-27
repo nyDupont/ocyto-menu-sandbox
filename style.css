@@ -1,7 +1,10 @@
 :root {
   --fond-parents: #b8943c;
   --fond-enfants: #b8943c;
-  --fond-cadre: #f0e6cc;   /* beige clair pour les rectangles de catégorie */
+  --fond-cadre: #f0e6cc;
+  --ruche-defaut: #f0e6cc;   /* couleur des hexagones de ruche dont la feuille est désactivée */
+  --ruche-trait-couleur: #2c3e50;   /* couleur de la ligne entre hexagones de la ruche */
+  --ruche-trait-epaisseur: 4;     /* épaisseur de cette ligne */
 }
 
 * {
@@ -41,6 +44,11 @@ body {
   fill: #2c3e50;
   stroke: white;
   stroke-width: 1;
+}
+
+.ruche .hex {
+  stroke: var(--ruche-trait-couleur);
+  stroke-width: var(--ruche-trait-epaisseur);
 }
 
 /* --- Barre de boutons --- */
