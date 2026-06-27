@@ -85,20 +85,24 @@ function buildMenu() {
       children.appendChild(makeItem(nomEnfant));
     });
 
+    children.addEventListener("transitionend", onEnfantsTransitionEnd);
+
     // Clic sur la catégorie
     parentItem.addEventListener("click", () => {
       const dejaOuvert = node.classList.contains("open");
 
-      // 1. On referme systématiquement toute catégorie ouverte
+      // 1. On referme systématiquement toute catégorie ouverte (avec animation)
       if (nodeOuvert) {
+        const ancienChildren = nodeOuvert.querySelector(".children");
+        fermerEnfants(ancienChildren);
         nodeOuvert.classList.remove("open");
         nodeOuvert = null;
       }
 
-      // 2. On ouvre la catégorie cliquée seulement si elle a des enfants
-      //    et qu'elle n'était pas déjà ouverte (sinon un re-clic la laisse fermée = toggle)
+      // 2. On ouvre la catégorie cliquée si elle a des enfants et n'était pas déjà ouverte
       if (categorie.enfants.length > 0 && !dejaOuvert) {
         node.classList.add("open");
+        ouvrirEnfants(children);
         nodeOuvert = node;
       }
 
@@ -141,19 +145,70 @@ function toggleMenu() {
   }
 }
 
+
+// Ouvre un conteneur d'enfants avec animation de largeur
+function ouvrirEnfants(children) {
+  children.style.overflow = "hidden";
+  children.style.width = children.scrollWidth + "px";
+}
+
+// Ferme un conteneur d'enfants avec animation de largeur
+function fermerEnfants(children) {
+  children.style.overflow = "hidden";
+  // Convertir un éventuel "auto" en valeur chiffrée
+  children.style.width = children.scrollWidth + "px";
+  children.offsetWidth;        // force le reflow (cf. A1)
+  children.style.width = "0px";
+}
+
+// Fin d'animation d'un conteneur d'enfants : si ouvert, largeur flexible + overflow visible
+function onEnfantsTransitionEnd(e) {
+  const children = e.currentTarget;
+  if (e.propertyName !== "width") return;
+  // S'il est ouvert (sa node parente a la classe "open"), on rétablit auto/visible
+  if (children.parentElement.classList.contains("open")) {
+    children.style.width = "auto";
+    children.style.overflow = "visible";
+  }
+}
+
 // Quand l'animation se termine, on ajuste l'état final
 menu.addEventListener("transitionend", (e) => {
-  // On ne réagit qu'à la transition de hauteur du menu lui-même
   if (e.target !== menu || e.propertyName !== "height") return;
 
   if (menu.classList.contains("open")) {
-    // Ouvert : hauteur flexible + overflow visible (pour ne pas couper les enfants)
     menu.style.height = "auto";
     menu.style.overflow = "visible";
+  } else {
+    // Colonne refermée : on rétablit la vitesse normale
+    menu.classList.remove("fermeture-rapide");
   }
 }, true);
 
-ruche.addEventListener("click", toggleMenu);
+// Clic sur la ruche : si une sous-liste est ouverte, on la replie d'abord, PUIS la colonne (2x plus vite)
+ruche.addEventListener("click", () => {
+  const menuOuvert = menu.classList.contains("open");
+
+  if (menuOuvert && nodeOuvert) {
+    const children = nodeOuvert.querySelector(".children");
+
+    // Active la vitesse rapide pour toute la séquence
+    menu.classList.add("fermeture-rapide");
+
+    children.addEventListener("transitionend", function attente(e) {
+      if (e.propertyName !== "width") return;
+      children.removeEventListener("transitionend", attente);
+      toggleMenu();   // repli vertical de la colonne
+    });
+
+    fermerEnfants(children);
+    nodeOuvert.classList.remove("open");
+    nodeOuvert = null;
+    menu.classList.remove("categorie-ouverte");
+  } else {
+    toggleMenu();
+  }
+});
 
 aide.addEventListener("click", () => {
   menu.classList.toggle("show-labels");

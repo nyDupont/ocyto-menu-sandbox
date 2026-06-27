@@ -90,16 +90,15 @@ body {
 
 /* Conteneur des enfants : déployé horizontalement à droite du parent */
 .children {
-  display: none;
+  display: flex;
   flex-direction: row;
   gap: 15px;
   position: absolute;
   top: 0;
   left: 82px;
-}
-
-.menu-node.open .children {
-  display: flex;
+  width: 0;
+  overflow: hidden;
+  transition: width 0.4s ease;
 }
 
 /* Chaque enfant : hexagone au-dessus, libellé dessous, largeur fixe */
@@ -130,4 +129,10 @@ body {
 /* Aide active, une catégorie ouverte : libellés des enfants de la catégorie ouverte */
 .menu-container.show-labels .menu-node.open .children .menu-label {
   display: inline;
+}
+
+/* Vitesse accélérée (fermeture via la ruche) */
+.menu-container.fermeture-rapide,
+.menu-container.fermeture-rapide .children {
+  transition-duration: 0.2s;
 }
