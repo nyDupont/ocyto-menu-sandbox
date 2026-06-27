@@ -14,6 +14,15 @@ body {
   position: absolute;
   top: 20px;
   left: 20px;
+  display: flex;
+  align-items: center;   /* centre le texte sur la hauteur de la ruche */
+  gap: 12px;
+}
+
+.ruche-titre {
+  color: black;
+  font-weight: bold;
+  font-size: 1.5rem;
 }
 
 /* Taille de la ruche affichée */
@@ -87,8 +96,15 @@ body {
   color: #2c3e50;
 }
 
-/* Pour l'instant : l'aide affiche tous les libellés (on rendra ça contextuel à l'étape 4) */
-.menu-container.show-labels .menu-label {
+/* --- Aide contextuelle --- */
+
+/* Aide active, aucune catégorie ouverte : on montre les libellés des catégories (1er niveau) */
+.menu-container.show-labels:not(.categorie-ouverte) > .menu-node > .menu-item .menu-label {
+  display: inline;
+}
+
+/* Aide active, une catégorie ouverte : on montre les libellés des enfants de la catégorie ouverte */
+.menu-container.show-labels .menu-node.open .children .menu-label {
   display: inline;
 }
 

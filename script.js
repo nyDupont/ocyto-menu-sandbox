@@ -87,24 +87,23 @@ function buildMenu() {
 
     // Clic sur la catégorie
     parentItem.addEventListener("click", () => {
-      // Catégorie sans enfant : on ne fait rien
-      if (categorie.enfants.length === 0) return;
-
       const dejaOuvert = node.classList.contains("open");
 
-      // On referme la catégorie précédemment ouverte (si différente)
-      if (nodeOuvert && nodeOuvert !== node) {
+      // 1. On referme systématiquement toute catégorie ouverte
+      if (nodeOuvert) {
         nodeOuvert.classList.remove("open");
+        nodeOuvert = null;
       }
 
-      // Toggle de la catégorie cliquée
-      if (dejaOuvert) {
-        node.classList.remove("open");
-        nodeOuvert = null;
-      } else {
+      // 2. On ouvre la catégorie cliquée seulement si elle a des enfants
+      //    et qu'elle n'était pas déjà ouverte (sinon un re-clic la laisse fermée = toggle)
+      if (categorie.enfants.length > 0 && !dejaOuvert) {
         node.classList.add("open");
         nodeOuvert = node;
       }
+
+      // 3. #menu reflète s'il reste une catégorie ouverte (pour l'aide contextuelle)
+      menu.classList.toggle("categorie-ouverte", nodeOuvert !== null);
     });
 
     node.appendChild(parentItem);
