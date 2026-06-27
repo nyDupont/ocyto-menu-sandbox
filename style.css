@@ -1,0 +1,87 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: white;
+}
+
+/* Conteneur de la ruche, calé en haut à droite */
+.ruche-container {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+}
+
+/* Taille de la ruche affichée */
+.ruche {
+  width: 100px;
+  height: 100px;
+}
+
+/* Apparence des hexagones */
+.hex {
+  fill: #2c3e50;
+  stroke: white;
+  stroke-width: 1;
+}
+
+/* Bouton Aide, centré en haut */
+.aide-btn {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2c3e50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* Conteneur de la colonne de menu, sous la ruche */
+.menu-container {
+  position: absolute;
+  top: 140px;
+  left: 35px;           /* 20 + 15 pour centrer sous la ruche */
+  display: none;
+}
+
+.menu-container.open {
+  display: block;
+}
+
+/* Une ligne du menu : hexagone + libellé côte à côte */
+.menu-item {
+  display: flex;
+  align-items: center;   /* centre le texte verticalement sur l'hexagone */
+  gap: 12px;
+  margin-bottom: 15px;   /* espace entre les lignes */
+}
+
+.menu-hex {
+  width: 70px;
+  flex-shrink: 0;        /* l'hexagone garde sa taille */
+}
+
+/* Libellés masqués par défaut */
+.menu-label {
+  display: none;
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+/* Libellés visibles quand le menu a la classe "show-labels" */
+.menu-container.show-labels .menu-label {
+  display: inline;
+}
+
+/* Curseur main au survol de la ruche, pour signaler qu'elle est cliquable */
+.ruche {
+  cursor: pointer;
+}
