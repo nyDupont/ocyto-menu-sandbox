@@ -9,13 +9,13 @@ body {
   background-color: white;
 }
 
-/* Conteneur de la ruche, calé en haut à droite */
+/* --- Ruche --- */
 .ruche-container {
   position: absolute;
   top: 20px;
   left: 20px;
   display: flex;
-  align-items: center;   /* centre le texte sur la hauteur de la ruche */
+  align-items: center;
   gap: 12px;
 }
 
@@ -25,20 +25,19 @@ body {
   font-size: 1.5rem;
 }
 
-/* Taille de la ruche affichée */
 .ruche {
   width: 100px;
   height: 100px;
+  cursor: pointer;
 }
 
-/* Apparence des hexagones */
 .hex {
   fill: #2c3e50;
   stroke: white;
   stroke-width: 1;
 }
 
-/* Barre de boutons centrée en haut */
+/* --- Barre de boutons --- */
 .barre-boutons {
   position: absolute;
   top: 20px;
@@ -48,7 +47,6 @@ body {
   gap: 10px;
 }
 
-/* Style commun des boutons */
 .btn {
   background-color: #2c3e50;
   color: white;
@@ -59,12 +57,22 @@ body {
   cursor: pointer;
 }
 
-/* Un bloc catégorie : la ligne parente + ses enfants, côte à côte */
+/* --- Colonne de menu, sous la ruche --- */
+.menu-container {
+  position: absolute;
+  top: 140px;
+  left: 35px;
+  height: 0;
+  overflow: hidden;
+  transition: height 0.4s ease;
+}
+
+/* Un bloc catégorie : ligne parente + ses enfants */
 .menu-node {
   display: flex;
   align-items: flex-start;
   margin-bottom: 15px;
-  position: relative;        /* repère pour positionner les enfants */
+  position: relative;
 }
 
 /* Une ligne : hexagone + libellé */
@@ -80,89 +88,46 @@ body {
   flex-shrink: 0;
 }
 
-/* Conteneur des enfants : masqué par défaut, à droite du parent */
+/* Conteneur des enfants : déployé horizontalement à droite du parent */
 .children {
   display: none;
-  flex-direction: column;
-  gap: 15px;                 /* même espacement que entre parents */
+  flex-direction: row;
+  gap: 15px;
   position: absolute;
   top: 0;
   left: 82px;
 }
 
-/* Mode B : enfants déployés horizontalement */
-.menu-container.mode-horizontal .children {
-  flex-direction: row;
-}
-
-/* Visible quand la catégorie est ouverte */
 .menu-node.open .children {
   display: flex;
 }
 
-/* Libellés masqués par défaut */
-.menu-label {
-  display: none;
-  font-size: 1rem;
-  color: #2c3e50;
-}
-
-/* --- Aide contextuelle --- */
-
-/* Aide active, aucune catégorie ouverte : on montre les libellés des catégories (1er niveau) */
-.menu-container.show-labels:not(.categorie-ouverte) > .menu-node > .menu-item .menu-label {
-  display: inline;
-}
-
-/* Aide active, une catégorie ouverte : on montre les libellés des enfants de la catégorie ouverte */
-.menu-container.show-labels .menu-node.open .children .menu-label {
-  display: inline;
-}
-
-/* Conteneur de la colonne de menu, sous la ruche */
-.menu-container {
-  position: absolute;
-  top: 140px;
-  left: 35px;           /* 20 + 15 pour centrer sous la ruche */
-  display: none;
-}
-
-.menu-container.open {
-  display: block;
-}
-
-.menu-hex {
+/* Chaque enfant : hexagone au-dessus, libellé dessous, largeur fixe */
+.children .menu-item {
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   width: 70px;
-  flex-shrink: 0;        /* l'hexagone garde sa taille */
 }
 
-/* Libellés masqués par défaut */
+/* --- Libellés (aide) --- */
 .menu-label {
   display: none;
   font-size: 0.8rem;
   color: #2c3e50;
 }
 
-/* Curseur main au survol de la ruche, pour signaler qu'elle est cliquable */
-.ruche {
-  cursor: pointer;
-}
-
-/* Largeur fixe pour que le toggle de texte ne décale pas la barre */
-#mode {
-  width: 80px;
+.children .menu-label {
   text-align: center;
+  white-space: nowrap;
 }
 
-/* Mode B : libellés des enfants placés SOUS l'hexagone */
-.menu-container.mode-horizontal .children .menu-item {
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 70px;          /* largeur fixe = largeur de l'hexagone */
+/* Aide active, aucune catégorie ouverte : libellés des catégories */
+.menu-container.show-labels:not(.categorie-ouverte) > .menu-node > .menu-item .menu-label {
+  display: inline;
 }
 
-.menu-container.mode-horizontal .children .menu-label {
-  text-align: center;
-  white-space: nowrap;   /* garde le libellé sur une ligne */
+/* Aide active, une catégorie ouverte : libellés des enfants de la catégorie ouverte */
+.menu-container.show-labels .menu-node.open .children .menu-label {
+  display: inline;
 }

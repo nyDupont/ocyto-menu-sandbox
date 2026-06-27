@@ -119,18 +119,42 @@ const ruche = buildRuche();
 const menu = buildMenu();
 const aide = document.getElementById("aide");
 
-// ---- Interactions globales ----
-ruche.addEventListener("click", () => {
-  menu.classList.toggle("open");
-});
+// Ouvre/ferme la colonne de catégories avec animation de hauteur
+function toggleMenu() {
+  const estOuvert = menu.classList.contains("open");
+
+  if (estOuvert) {
+    // Fermeture
+    menu.style.overflow = "hidden";
+    // 1. Convertir l'éventuel "auto" en valeur chiffrée
+    menu.style.height = menu.scrollHeight + "px";
+    // 2. Forcer le navigateur à enregistrer cette hauteur (lecture = recalcul du layout)
+    menu.offsetHeight;   // ligne volontaire : déclenche le reflow
+    menu.classList.remove("open");
+    // 3. Maintenant on anime vers 0
+    menu.style.height = "0px";
+  } else {
+    // Ouverture : de 0 vers la hauteur naturelle
+    menu.classList.add("open");
+    menu.style.overflow = "hidden";
+    menu.style.height = menu.scrollHeight + "px";
+  }
+}
+
+// Quand l'animation se termine, on ajuste l'état final
+menu.addEventListener("transitionend", (e) => {
+  // On ne réagit qu'à la transition de hauteur du menu lui-même
+  if (e.target !== menu || e.propertyName !== "height") return;
+
+  if (menu.classList.contains("open")) {
+    // Ouvert : hauteur flexible + overflow visible (pour ne pas couper les enfants)
+    menu.style.height = "auto";
+    menu.style.overflow = "visible";
+  }
+}, true);
+
+ruche.addEventListener("click", toggleMenu);
 
 aide.addEventListener("click", () => {
   menu.classList.toggle("show-labels");
-});
-
-const mode = document.getElementById("mode");
-mode.addEventListener("click", () => {
-  const horizontal = menu.classList.toggle("mode-horizontal");
-  // Le bouton affiche le mode courant
-  mode.textContent = horizontal ? "horiz." : "vert.";
 });
