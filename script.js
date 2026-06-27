@@ -1,6 +1,10 @@
 // ---- Constante d'espace de noms SVG ----
 const SVG_NS = "http://www.w3.org/2000/svg";
 
+// ---- Durée des animations (à garder synchronisée avec le CSS : 0.4s) ----
+const DUREE = 400;        // ms, vitesse normale
+const DUREE_RAPIDE = 200; // ms, fermeture via la ruche
+
 // ---- Arborescence (données, modifiables ici) ----
 const arbre = [
   { nom: "Rafraîchir", enfants: [] },
@@ -28,7 +32,7 @@ function makeHexPolygon(cx, cy, r) {
   return poly;
 }
 
-// ---- Crée une "ligne" hexagone + libellé (réutilisée pour parents et enfants) ----
+// ---- Crée une "ligne" hexagone + libellé ----
 function makeItem(label) {
   const item = document.createElement("div");
   item.setAttribute("class", "menu-item");
@@ -68,53 +72,52 @@ let nodeOuvert = null;
 
 // ---- Génération de la colonne de menu à partir de l'arbre ----
 function buildMenu() {
-  const menu = document.getElementById("menu");
+    const menu = document.getElementById("menu");
 
-  arbre.forEach((categorie) => {
-    // Bloc complet de la catégorie : sa ligne + ses enfants
+    const menuInner = document.createElement("div");
+    menuInner.setAttribute("class", "menu-inner");
+
+    arbre.forEach((categorie) => {
     const node = document.createElement("div");
     node.setAttribute("class", "menu-node");
 
-    // Ligne parente (hexagone cliquable + libellé)
     const parentItem = makeItem(categorie.nom);
 
-    // Conteneur des enfants (masqué par défaut)
     const children = document.createElement("div");
     children.setAttribute("class", "children");
+
+    const childrenInner = document.createElement("div");
+    childrenInner.setAttribute("class", "children-inner");
     categorie.enfants.forEach((nomEnfant) => {
-      children.appendChild(makeItem(nomEnfant));
+    childrenInner.appendChild(makeItem(nomEnfant));
     });
+    children.appendChild(childrenInner);
 
-    children.addEventListener("transitionend", onEnfantsTransitionEnd);
-
-    // Clic sur la catégorie
     parentItem.addEventListener("click", () => {
       const dejaOuvert = node.classList.contains("open");
 
-      // 1. On referme systématiquement toute catégorie ouverte (avec animation)
+      // 1. Refermer la catégorie actuellement ouverte (avec animation)
       if (nodeOuvert) {
-        const ancienChildren = nodeOuvert.querySelector(".children");
-        fermerEnfants(ancienChildren);
-        nodeOuvert.classList.remove("open");
+        fermerEnfants(nodeOuvert);
         nodeOuvert = null;
       }
 
-      // 2. On ouvre la catégorie cliquée si elle a des enfants et n'était pas déjà ouverte
+      // 2. Ouvrir la catégorie cliquée si elle a des enfants et n'était pas déjà ouverte
       if (categorie.enfants.length > 0 && !dejaOuvert) {
-        node.classList.add("open");
-        ouvrirEnfants(children);
+        ouvrirEnfants(node, children);
         nodeOuvert = node;
       }
 
-      // 3. #menu reflète s'il reste une catégorie ouverte (pour l'aide contextuelle)
+      // 3. Aide contextuelle
       menu.classList.toggle("categorie-ouverte", nodeOuvert !== null);
     });
 
     node.appendChild(parentItem);
     node.appendChild(children);
-    menu.appendChild(node);
+    menuInner.appendChild(node);
   });
 
+  menu.appendChild(menuInner);
   return menu;
 }
 
@@ -123,90 +126,108 @@ const ruche = buildRuche();
 const menu = buildMenu();
 const aide = document.getElementById("aide");
 
-// Ouvre/ferme la colonne de catégories avec animation de hauteur
-function toggleMenu() {
-  const estOuvert = menu.classList.contains("open");
+// ============================================================
+//   Animations coordonnées par minuteur (setTimeout)
+// ============================================================
 
-  if (estOuvert) {
-    // Fermeture
-    menu.style.overflow = "hidden";
-    // 1. Convertir l'éventuel "auto" en valeur chiffrée
-    menu.style.height = menu.scrollHeight + "px";
-    // 2. Forcer le navigateur à enregistrer cette hauteur (lecture = recalcul du layout)
-    menu.offsetHeight;   // ligne volontaire : déclenche le reflow
-    menu.classList.remove("open");
-    // 3. Maintenant on anime vers 0
-    menu.style.height = "0px";
-  } else {
-    // Ouverture : de 0 vers la hauteur naturelle
-    menu.classList.add("open");
-    menu.style.overflow = "hidden";
-    menu.style.height = menu.scrollHeight + "px";
-  }
+// ---- Colonne de catégories (vertical, hauteur) ----
+
+function ouvrirMenu() {
+  menu.classList.add("open");
+  menu.classList.add("visuel-ouvert");
+
+  // Figer la hauteur courante (0 si fermé, valeur intermédiaire si repli en cours)
+  const courante = menu.offsetHeight;
+  menu.style.overflow = "hidden";
+
+  // Mesurer la hauteur cible sur le contenu intérieur (jamais écrasé)
+  const inner = menu.querySelector(".menu-inner");
+  const cible = inner.scrollHeight + (inner.offsetHeight - inner.clientHeight);
+
+  // Repartir de la hauteur courante figée, puis animer vers la cible
+  menu.style.height = courante + "px";
+  menu.offsetHeight;                 // reflow
+  menu.style.height = cible + "px";
+
+  // Fin d'ouverture : hauteur flexible + overflow visible (si toujours ouvert)
+  setTimeout(() => {
+    if (menu.classList.contains("open")) {
+      menu.style.height = "auto";
+      menu.style.overflow = "visible";
+    }
+  }, DUREE);
 }
 
-
-// Ouvre un conteneur d'enfants avec animation de largeur
-function ouvrirEnfants(children) {
-  children.style.overflow = "hidden";
-  children.style.width = children.scrollWidth + "px";
+function fermerMenu(duree) {
+  menu.style.overflow = "hidden";
+  menu.style.height = menu.offsetHeight + "px"; // fige la hauteur réelle courante
+  menu.offsetHeight;                            // reflow
+  menu.classList.remove("open");
+  menu.style.height = "0px";
+  setTimeout(() => {
+    // Ne retirer le cadre que si le menu est TOUJOURS fermé (sinon une réouverture l'a repris)
+    if (!menu.classList.contains("open")) {
+      menu.classList.remove("visuel-ouvert");
+      menu.classList.remove("fermeture-rapide");
+    }
+  }, duree);
 }
 
-// Ferme un conteneur d'enfants avec animation de largeur
-function fermerEnfants(children) {
+// ---- Enfants (horizontal, largeur) ----
+
+function ouvrirEnfants(node, children) {
+  node.classList.add("open");
+  node.classList.add("visuel-ouvert");
+
+  // Figer la largeur courante (0 si fermé, valeur intermédiaire si repli en cours)
+  const courante = children.offsetWidth;
   children.style.overflow = "hidden";
-  // Convertir un éventuel "auto" en valeur chiffrée
-  children.style.width = children.scrollWidth + "px";
-  children.offsetWidth;        // force le reflow (cf. A1)
+
+  // Mesurer la largeur naturelle de .children lui-même (padding du conteneur inclus)
+  children.style.width = "auto";
+  const cible = children.scrollWidth;
+
+  // Repartir de la largeur courante figée, puis animer vers la cible
+  children.style.width = courante + "px";
+  children.offsetWidth;                 // reflow : fige la largeur courante avant la transition
+  children.style.width = cible + "px";
+}
+
+function fermerEnfants(node) {
+  const children = node.querySelector(".children");
+  node.classList.remove("open");
+  children.style.overflow = "hidden";
+  children.style.width = children.offsetWidth + "px"; // fige la largeur réelle
+  children.offsetWidth;                               // reflow
   children.style.width = "0px";
+  setTimeout(() => {
+    if (!node.classList.contains("open")) {
+      node.classList.remove("visuel-ouvert");
+    }
+  }, DUREE);
 }
 
-// Fin d'animation d'un conteneur d'enfants : si ouvert, largeur flexible + overflow visible
-function onEnfantsTransitionEnd(e) {
-  const children = e.currentTarget;
-  if (e.propertyName !== "width") return;
-  // S'il est ouvert (sa node parente a la classe "open"), on rétablit auto/visible
-  if (children.parentElement.classList.contains("open")) {
-    children.style.width = "auto";
-    children.style.overflow = "visible";
-  }
-}
+// ---- Interactions globales ----
 
-// Quand l'animation se termine, on ajuste l'état final
-menu.addEventListener("transitionend", (e) => {
-  if (e.target !== menu || e.propertyName !== "height") return;
-
-  if (menu.classList.contains("open")) {
-    menu.style.height = "auto";
-    menu.style.overflow = "visible";
-  } else {
-    // Colonne refermée : on rétablit la vitesse normale
-    menu.classList.remove("fermeture-rapide");
-  }
-}, true);
-
-// Clic sur la ruche : si une sous-liste est ouverte, on la replie d'abord, PUIS la colonne (2x plus vite)
+// Clic ruche : si une sous-liste est ouverte, replier les enfants PUIS la colonne (rapide)
 ruche.addEventListener("click", () => {
   const menuOuvert = menu.classList.contains("open");
 
   if (menuOuvert && nodeOuvert) {
-    const children = nodeOuvert.querySelector(".children");
-
-    // Active la vitesse rapide pour toute la séquence
+    // Séquence accélérée
     menu.classList.add("fermeture-rapide");
-
-    children.addEventListener("transitionend", function attente(e) {
-      if (e.propertyName !== "width") return;
-      children.removeEventListener("transitionend", attente);
-      toggleMenu();   // repli vertical de la colonne
-    });
-
-    fermerEnfants(children);
-    nodeOuvert.classList.remove("open");
-    nodeOuvert = null;
+    fermerEnfants(nodeOuvert);
     menu.classList.remove("categorie-ouverte");
+    const node = nodeOuvert;
+    nodeOuvert = null;
+    // Après le repli des enfants (rapide), on replie la colonne (rapide)
+    setTimeout(() => {
+      fermerMenu(DUREE_RAPIDE);
+    }, DUREE_RAPIDE);
+  } else if (menuOuvert) {
+    fermerMenu(DUREE);
   } else {
-    toggleMenu();
+    ouvrirMenu();
   }
 });
 

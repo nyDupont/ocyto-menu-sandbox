@@ -1,3 +1,9 @@
+:root {
+  --fond-parents: #b8943c;
+  --fond-enfants: #b8943c;
+  --fond-cadre: #f0e6cc;   /* beige clair pour les rectangles de catégorie */
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -61,18 +67,27 @@ body {
 .menu-container {
   position: absolute;
   top: 140px;
-  left: 35px;
+  left: 27px;
   height: 0;
   overflow: hidden;
   transition: height 0.4s ease;
 }
 
+.menu-inner {
+  background-color: white;
+  padding: 0;
+}
+
 /* Un bloc catégorie : ligne parente + ses enfants */
 .menu-node {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 15px;
   position: relative;
+  background-color: var(--fond-cadre);
+  border-radius: 12px;
+  padding: 8px;
+  width: fit-content;
 }
 
 /* Une ligne : hexagone + libellé */
@@ -90,15 +105,19 @@ body {
 
 /* Conteneur des enfants : déployé horizontalement à droite du parent */
 .children {
-  display: flex;
-  flex-direction: row;
-  gap: 15px;
-  position: absolute;
-  top: 0;
-  left: 82px;
   width: 0;
   overflow: hidden;
   transition: width 0.4s ease;
+  min-width: 0;
+}
+
+.children-inner {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  margin-left: 12px;
+  padding-left: 14px;
+  border-left: 2px solid var(--fond-parents);
 }
 
 /* Chaque enfant : hexagone au-dessus, libellé dessous, largeur fixe */
@@ -126,8 +145,8 @@ body {
   display: inline;
 }
 
-/* Aide active, une catégorie ouverte : libellés des enfants de la catégorie ouverte */
-.menu-container.show-labels .menu-node.open .children .menu-label {
+/* Aide active, une catégorie ouverte : libellés des enfants (suivent le visuel) */
+.menu-container.show-labels .menu-node.visuel-ouvert .children .menu-label {
   display: inline;
 }
 
