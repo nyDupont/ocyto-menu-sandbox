@@ -1,12 +1,18 @@
-// ---- Constante d'espace de noms SVG (obligatoire pour créer des éléments SVG) ----
+// ---- Constante d'espace de noms SVG ----
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-// ---- Brique de base : calcule les 6 sommets d'un hexagone pointe-en-haut ----
-// cx, cy = centre ; r = rayon (cercle circonscrit). Renvoie la chaîne "x1,y1 x2,y2 ..."
+// ---- Arborescence (données, modifiables ici) ----
+const arbre = [
+  { nom: "Rafraîchir", enfants: [] },
+  { nom: "Signaler",   enfants: ["Fonctionnel", "Disfonctionnel", "Danger"] },
+  { nom: "Découvrir",  enfants: ["Parcours", "Promotions"] },
+];
+
+// ---- Brique de base : sommets d'un hexagone pointe-en-haut ----
 function hexPoints(cx, cy, r) {
   const pts = [];
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 180) * (90 - i * 60); // 90°, 30°, -30°, ... en radians
+    const angle = (Math.PI / 180) * (90 - i * 60);
     const x = cx + r * Math.cos(angle);
     const y = cy - r * Math.sin(angle);
     pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
@@ -14,7 +20,7 @@ function hexPoints(cx, cy, r) {
   return pts.join(" ");
 }
 
-// ---- Crée un élément <polygon> hexagonal et le renvoie ----
+// ---- Crée un <polygon> hexagonal ----
 function makeHexPolygon(cx, cy, r) {
   const poly = document.createElementNS(SVG_NS, "polygon");
   poly.setAttribute("class", "hex");
@@ -22,16 +28,32 @@ function makeHexPolygon(cx, cy, r) {
   return poly;
 }
 
+// ---- Crée une "ligne" hexagone + libellé (réutilisée pour parents et enfants) ----
+function makeItem(label) {
+  const item = document.createElement("div");
+  item.setAttribute("class", "menu-item");
+
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", "menu-hex");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  svg.appendChild(makeHexPolygon(50, 50, 45));
+
+  const span = document.createElement("span");
+  span.setAttribute("class", "menu-label");
+  span.textContent = label;
+
+  item.appendChild(svg);
+  item.appendChild(span);
+  return item;
+}
+
 // ---- Génération de la ruche (1 centre + 6 autour) ----
 function buildRuche() {
   const ruche = document.getElementById("ruche");
   const cx = 100, cy = 100, r = 30;
-  const d = Math.sqrt(3) * r; // distance entre centres voisins
+  const d = Math.sqrt(3) * r;
 
-  // Hexagone central
   ruche.appendChild(makeHexPolygon(cx, cy, r));
-
-  // 6 hexagones périphériques aux angles 0, 60, 120, 180, 240, 300
   for (let i = 0; i < 6; i++) {
     const theta = (Math.PI / 180) * (i * 60);
     const x = cx + d * Math.cos(theta);
@@ -41,31 +63,53 @@ function buildRuche() {
   return ruche;
 }
 
-// ---- Génération de la colonne de menu ----
-const menuEntries = ["Rafraîchir", "Signaler", "Découvrir"];
+// ---- Suivi de la catégorie actuellement ouverte (une seule à la fois) ----
+let nodeOuvert = null;
 
+// ---- Génération de la colonne de menu à partir de l'arbre ----
 function buildMenu() {
   const menu = document.getElementById("menu");
 
-  menuEntries.forEach((label) => {
-    // Ligne : hexagone + libellé
-    const item = document.createElement("div");
-    item.setAttribute("class", "menu-item");
+  arbre.forEach((categorie) => {
+    // Bloc complet de la catégorie : sa ligne + ses enfants
+    const node = document.createElement("div");
+    node.setAttribute("class", "menu-node");
 
-    // SVG de l'hexagone (viewBox 100x100, hexagone régulier centré)
-    const svg = document.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("class", "menu-hex");
-    svg.setAttribute("viewBox", "0 0 100 100");
-    svg.appendChild(makeHexPolygon(50, 50, 45));
+    // Ligne parente (hexagone cliquable + libellé)
+    const parentItem = makeItem(categorie.nom);
 
-    // Libellé texte
-    const span = document.createElement("span");
-    span.setAttribute("class", "menu-label");
-    span.textContent = label;
+    // Conteneur des enfants (masqué par défaut)
+    const children = document.createElement("div");
+    children.setAttribute("class", "children");
+    categorie.enfants.forEach((nomEnfant) => {
+      children.appendChild(makeItem(nomEnfant));
+    });
 
-    item.appendChild(svg);
-    item.appendChild(span);
-    menu.appendChild(item);
+    // Clic sur la catégorie
+    parentItem.addEventListener("click", () => {
+      // Catégorie sans enfant : on ne fait rien
+      if (categorie.enfants.length === 0) return;
+
+      const dejaOuvert = node.classList.contains("open");
+
+      // On referme la catégorie précédemment ouverte (si différente)
+      if (nodeOuvert && nodeOuvert !== node) {
+        nodeOuvert.classList.remove("open");
+      }
+
+      // Toggle de la catégorie cliquée
+      if (dejaOuvert) {
+        node.classList.remove("open");
+        nodeOuvert = null;
+      } else {
+        node.classList.add("open");
+        nodeOuvert = node;
+      }
+    });
+
+    node.appendChild(parentItem);
+    node.appendChild(children);
+    menu.appendChild(node);
   });
 
   return menu;
@@ -76,7 +120,7 @@ const ruche = buildRuche();
 const menu = buildMenu();
 const aide = document.getElementById("aide");
 
-// ---- Interactions ----
+// ---- Interactions globales ----
 ruche.addEventListener("click", () => {
   menu.classList.toggle("open");
 });

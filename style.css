@@ -44,6 +44,54 @@ body {
   cursor: pointer;
 }
 
+/* Un bloc catégorie : la ligne parente + ses enfants, côte à côte */
+.menu-node {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  position: relative;        /* repère pour positionner les enfants */
+}
+
+/* Une ligne : hexagone + libellé */
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.menu-hex {
+  width: 70px;
+  flex-shrink: 0;
+}
+
+/* Conteneur des enfants : masqué par défaut, à droite du parent */
+.children {
+  display: none;
+  flex-direction: column;
+  gap: 15px;                 /* même espacement que entre parents */
+  position: absolute;
+  top: 0;
+  left: 82px;
+}
+
+/* Visible quand la catégorie est ouverte */
+.menu-node.open .children {
+  display: flex;
+}
+
+/* Libellés masqués par défaut */
+.menu-label {
+  display: none;
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+/* Pour l'instant : l'aide affiche tous les libellés (on rendra ça contextuel à l'étape 4) */
+.menu-container.show-labels .menu-label {
+  display: inline;
+}
+
 /* Conteneur de la colonne de menu, sous la ruche */
 .menu-container {
   position: absolute;
@@ -56,14 +104,6 @@ body {
   display: block;
 }
 
-/* Une ligne du menu : hexagone + libellé côte à côte */
-.menu-item {
-  display: flex;
-  align-items: center;   /* centre le texte verticalement sur l'hexagone */
-  gap: 12px;
-  margin-bottom: 15px;   /* espace entre les lignes */
-}
-
 .menu-hex {
   width: 70px;
   flex-shrink: 0;        /* l'hexagone garde sa taille */
@@ -74,11 +114,6 @@ body {
   display: none;
   font-size: 1rem;
   color: #2c3e50;
-}
-
-/* Libellés visibles quand le menu a la classe "show-labels" */
-.menu-container.show-labels .menu-label {
-  display: inline;
 }
 
 /* Curseur main au survol de la ruche, pour signaler qu'elle est cliquable */
