@@ -127,3 +127,10 @@ ruche.addEventListener("click", () => {
 aide.addEventListener("click", () => {
   menu.classList.toggle("show-labels");
 });
+
+const mode = document.getElementById("mode");
+mode.addEventListener("click", () => {
+  const horizontal = menu.classList.toggle("mode-horizontal");
+  // Le bouton affiche le mode courant
+  mode.textContent = horizontal ? "horiz." : "vert.";
+});
